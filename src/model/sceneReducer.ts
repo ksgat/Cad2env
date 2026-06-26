@@ -10,6 +10,7 @@ export type EditorAction =
   | { type: "select"; selection: Selection }
   | { type: "loadScene"; scene: RigScene }
   | { type: "addBody"; body: Body }
+  | { type: "addBodies"; bodies: Body[]; selectBodyId?: string }
   | { type: "updateBody"; bodyId: string; patch: Partial<Body> }
   | { type: "deleteBody"; bodyId: string }
   | { type: "addGeom"; bodyId: string; geom: Geom }
@@ -51,7 +52,32 @@ export function sceneReducer(
           id: action.body.id
         }
       };
+    case "addBodies":
+      return {
+        ...state,
+        scene: {
+          ...state.scene,
+          bodies: [...state.scene.bodies, ...action.bodies]
+        },
+        selection: action.selectBodyId
+          ? {
+              type: "body",
+              id: action.selectBodyId
+            }
+          : state.selection
+      };
     case "updateBody":
+      if (
+        action.patch.parentBodyId !== undefined &&
+        isInvalidParentBodyId(
+          state.scene.bodies,
+          action.bodyId,
+          action.patch.parentBodyId
+        )
+      ) {
+        return state;
+      }
+
       return {
         ...state,
         scene: {
@@ -218,6 +244,26 @@ function findGeom(bodies: Body[], geomId: string): Geom | null {
   }
 
   return null;
+}
+
+function isInvalidParentBodyId(
+  bodies: Body[],
+  bodyId: string,
+  parentBodyId: string | null
+): boolean {
+  if (parentBodyId === null) {
+    return false;
+  }
+
+  if (parentBodyId === bodyId) {
+    return true;
+  }
+
+  if (!bodies.some((body) => body.id === parentBodyId)) {
+    return true;
+  }
+
+  return collectBodyAndDescendantIds(bodies, bodyId).has(parentBodyId);
 }
 
 function isSelectionDeleted(
