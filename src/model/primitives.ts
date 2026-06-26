@@ -62,7 +62,7 @@ const primitiveSpecs: Record<GeomType, PrimitiveSpec> = {
 export function createPrimitiveBody(type: GeomType, index: number): Body {
   const spec = primitiveSpecs[type];
   const bodyId = nanoid();
-  const geom = createPrimitiveGeom(spec, bodyId);
+  const geom = createPrimitiveGeomForBody(type, bodyId, index);
   const suffix = String(index).padStart(2, "0");
 
   return {
@@ -90,10 +90,17 @@ export function createPrimitiveBody(type: GeomType, index: number): Body {
   };
 }
 
-function createPrimitiveGeom(spec: PrimitiveSpec, bodyId: string): Geom {
+export function createPrimitiveGeomForBody(
+  type: GeomType,
+  bodyId: string,
+  index: number
+): Geom {
+  const spec = primitiveSpecs[type];
+  const suffix = String(index).padStart(2, "0");
+
   return {
     id: nanoid(),
-    name: spec.geomName,
+    name: `${spec.geomName}_${suffix}`,
     bodyId,
     type: spec.type,
     size: spec.size,

@@ -1,18 +1,11 @@
 import { useMemo, useReducer } from "react";
+import { InspectorPanel } from "./components/InspectorPanel";
+import { SceneTree } from "./components/SceneTree";
 import { Viewport3D } from "./components/Viewport3D";
 import { createDefaultScene, EMPTY_SELECTION } from "./model/defaultScene";
 import { createPrimitiveBody } from "./model/primitives";
 import { sceneReducer } from "./model/sceneReducer";
-import type { GeomType, Selection } from "./model/types";
-
-const selectionOptions: Selection[] = [
-  EMPTY_SELECTION,
-  { type: "cadPart", id: "placeholder-cad-part" },
-  { type: "body", id: "placeholder-body" },
-  { type: "geom", id: "placeholder-geom" },
-  { type: "joint", id: "placeholder-joint" },
-  { type: "actuator", id: "placeholder-actuator" }
-];
+import type { GeomType } from "./model/types";
 
 export function App() {
   const [state, dispatch] = useReducer(sceneReducer, undefined, () => ({
@@ -85,21 +78,24 @@ export function App() {
       <section className="editor-grid">
         <aside className="panel left-sidebar">
           <PanelHeader eyebrow="Scene" title="Rig Structure" />
-          <div className="tree-section">
-            <TreeGroup label="CAD Parts" count={state.scene.cadParts.length} />
-            <TreeGroup label="Bodies" count={state.scene.bodies.length} />
-            <TreeGroup label="Joints" count={state.scene.joints.length} />
-            <TreeGroup label="Actuators" count={state.scene.actuators.length} />
-          </div>
+          <SceneTree
+            scene={state.scene}
+            selection={state.selection}
+            onSelect={(selection) => dispatch({ type: "select", selection })}
+          />
           <div className="empty-note">
-            Primitive bodies are stored as MuJoCo-style bodies with nested geoms.
-            Selection and editing arrive in Phase 4.
+            Bodies are organized by parentBodyId. Geoms are serialized inside
+            their owning body.
           </div>
         </aside>
 
         <section className="viewport-column">
           <div className="viewport-panel">
-            <Viewport3D scene={state.scene} />
+            <Viewport3D
+              scene={state.scene}
+              selection={state.selection}
+              onSelect={(selection) => dispatch({ type: "select", selection })}
+            />
           </div>
 
           <section className="panel utility-panel">
@@ -110,43 +106,11 @@ export function App() {
 
         <aside className="panel inspector-panel">
           <PanelHeader eyebrow="Inspector" title="Selection" />
-          <div className="field-stack">
-            <label className="field">
-              <span>Selection preview</span>
-              <select
-                value={selectionToValue(state.selection)}
-                onChange={(event) =>
-                  dispatch({
-                    type: "select",
-                    selection: valueToSelection(event.target.value)
-                  })
-                }
-              >
-                {selectionOptions.map((selection) => (
-                  <option
-                    key={selectionToValue(selection)}
-                    value={selectionToValue(selection)}
-                  >
-                    {selectionLabel(selection)}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="readout">
-              <span>Type</span>
-              <strong>{state.selection.type ?? "none"}</strong>
-            </div>
-            <div className="readout">
-              <span>ID</span>
-              <strong>{state.selection.id ?? "none"}</strong>
-            </div>
-          </div>
-
-          <div className="empty-note">
-            Object-specific inspectors are introduced with selectable bodies,
-            geoms, joints, actuators, and CAD parts in later phases.
-          </div>
+          <InspectorPanel
+            scene={state.scene}
+            selection={state.selection}
+            dispatch={dispatch}
+          />
         </aside>
       </section>
     </main>
@@ -160,42 +124,4 @@ function PanelHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
       <h2>{title}</h2>
     </div>
   );
-}
-
-function TreeGroup({ label, count }: { label: string; count: number }) {
-  return (
-    <button className="tree-group" type="button">
-      <span>{label}</span>
-      <strong>{count}</strong>
-    </button>
-  );
-}
-
-function selectionToValue(selection: Selection): string {
-  if (!selection.type || !selection.id) {
-    return "none";
-  }
-
-  return `${selection.type}:${selection.id}`;
-}
-
-function valueToSelection(value: string): Selection {
-  if (value === "none") {
-    return EMPTY_SELECTION;
-  }
-
-  const [type, id] = value.split(":") as [Selection["type"], string];
-
-  return {
-    type,
-    id
-  };
-}
-
-function selectionLabel(selection: Selection): string {
-  if (!selection.type || !selection.id) {
-    return "None";
-  }
-
-  return `${selection.type} - ${selection.id}`;
 }

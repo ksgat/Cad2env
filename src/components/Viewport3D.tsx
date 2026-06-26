@@ -1,15 +1,20 @@
 import { Canvas } from "@react-three/fiber";
 import { Grid, OrbitControls } from "@react-three/drei";
 import { Color } from "three";
+import { EMPTY_SELECTION } from "../model/defaultScene";
 import { RigSceneObjects } from "../render/RigSceneObjects";
-import type { RigScene } from "../model/types";
+import type { RigScene, Selection } from "../model/types";
 
 interface Viewport3DProps {
   scene?: RigScene;
+  selection?: Selection;
+  onSelect?: (selection: Selection) => void;
 }
 
-export function Viewport3D({ scene }: Viewport3DProps) {
+export function Viewport3D({ scene, selection, onSelect }: Viewport3DProps) {
   const bodies = scene?.bodies ?? [];
+  const currentSelection = selection ?? EMPTY_SELECTION;
+  const handleSelect = onSelect ?? (() => undefined);
 
   return (
     <Canvas
@@ -42,7 +47,11 @@ export function Viewport3D({ scene }: Viewport3DProps) {
       />
 
       <axesHelper args={[1.5]} />
-      <RigSceneObjects bodies={bodies} />
+      <RigSceneObjects
+        bodies={bodies}
+        selection={currentSelection}
+        onSelect={handleSelect}
+      />
 
       <mesh position={[0, 0.015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.045, 0.06, 32]} />
